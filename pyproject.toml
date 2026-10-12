@@ -1,0 +1,13 @@
+[project]
+name = "ipcalc"
+dynamic = ["version"]
+description = "IPv4 subnet calculator that accepts decimal or binary input"
+requires-python = ">=3.11"
+
+[tool.setuptools.dynamic]
+version = { attr = "ipcalc.__version__" }
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "ipcalc"]
+pythonpath = ["."]
+addopts = "--doctest-modules"
