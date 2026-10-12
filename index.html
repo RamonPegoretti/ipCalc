@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ipCalc</title>
-<meta name="description" content="IPv4 subnet calculator. Type any IP or mask in decimal or binary.">
+<meta name="description" content="IPv4 and IPv6 subnet calculator. Type any IP or mask in decimal or binary.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
 <link rel="icon" href="static/logo.svg" type="image/svg+xml">
@@ -18,7 +18,7 @@
 <div class="wrap">
   <header>
     <h1><img class="logo" src="static/logo.svg" alt="" width="26" height="26">ip<span>Calc</span></h1>
-    <span class="sub">IPv4 subnet calculator. Type any IP in decimal or binary; results are always in decimal.</span>
+    <span class="sub">IPv4 and IPv6 subnet calculator. Type IPs in decimal (IPv4), hex (IPv6) or binary; IPv4 results are in decimal.</span>
     <span class="status" id="status">Starting Python…</span>
     <button class="theme" id="theme" type="button" aria-label="Theme: automatic">Auto</button>
   </header>
@@ -30,6 +30,7 @@
     <button role="tab" aria-selected="false" data-tab="conv">Decimal ⇄ Binary</button>
     <button role="tab" aria-selected="false" data-tab="split">Subnetting</button>
     <button role="tab" aria-selected="false" data-tab="vlsm">VLSM</button>
+    <button role="tab" aria-selected="false" data-tab="ipv6">IPv6</button>
     <button role="tab" aria-selected="false" data-tab="batch">Worksheet mode</button>
   </nav>
 
@@ -124,6 +125,30 @@ Lab 50</textarea></div>
       <span class="hint copy-msg"></span>
     </div>
     <div class="tablewrap" id="l-table"></div>
+  </section>
+
+  <!-- IPv6 -->
+  <section class="panel" data-pane="ipv6" hidden>
+    <div class="inputs">
+      <div class="field"><label for="x-ip">IPv6 address <span class="badge" data-fmt6></span></label>
+        <input id="x-ip" value="2001:db8:acad:1::25" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
+      <div class="field narrow"><label for="x-len">Prefix</label>
+        <input id="x-len" value="/64" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
+    </div>
+    <div class="hint">Accepts short or full form (<code>2001:db8::1</code>, <code>2001:0db8:0000:…</code>), <code>address/64</code> in one box, or binary: eight groups of 16 bits. Results are in standard hex.</div>
+    <div id="x-out" aria-live="polite"></div>
+    <h2 class="sub-h">Split into smaller subnets</h2>
+    <div class="inputs">
+      <div class="field narrow"><label for="x-new">New prefix</label>
+        <input id="x-new" value="/66" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
+    </div>
+    <div id="x-split" aria-live="polite"></div>
+    <div class="actions">
+      <button class="btn" type="button" data-table="x-table">Copy table</button>
+      <button class="btn ghost" type="button" data-table="x-table" data-format="csv">Copy as CSV</button>
+      <span class="hint copy-msg"></span>
+    </div>
+    <div class="tablewrap" id="x-table"></div>
   </section>
 
   <!-- Worksheet mode -->

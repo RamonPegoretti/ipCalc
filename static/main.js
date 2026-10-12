@@ -4,6 +4,7 @@
 const PYTHON_FILES = {
   "ipcalc/__init__.py": "ipcalc/__init__.py",
   "ipcalc/core.py": "ipcalc/core.py",
+  "ipcalc/ipv6.py": "ipcalc/ipv6.py",
   "static/app.py": "app.py",
 };
 

@@ -84,3 +84,5 @@ footer a{color:var(--net)}
 select{font-family:var(--sans);font-size:14px}
 .field.mode{flex:0 1 210px}
 .panel>.field{flex:none}
+.sub-h{font-size:15px;font-weight:600;margin:6px 0 0}
+[data-pane="ipv6"] .results{grid-template-columns:repeat(auto-fill,minmax(400px,1fr))}

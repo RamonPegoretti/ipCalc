@@ -2,7 +2,7 @@
 
 **Use it:** https://ramonpegoretti.github.io/ipCalc/
 
-An IPv4 subnet calculator for the networking course worksheets, built to be handy for real network work too.
+An IPv4 (and IPv6) subnet calculator for the networking course worksheets, built to be handy for real network work too.
 Type any address or mask in **decimal or binary**; results always come back in decimal.
 
 What it solves:
@@ -12,10 +12,12 @@ What it solves:
 - **Decimal ⇄ binary:** single octets or whole addresses
 - **Subnetting:** split a network into N subnets, or into subnets of at least X hosts
 - **VLSM:** fit subnets of different sizes (e.g. Sales 50, IT 20, link 2) into one network, biggest first
+- **IPv6:** compress / expand, network range, address type, and splitting into smaller prefixes (hex in, hex out; binary input works too)
 - **Worksheet mode:** many lines at once
 
 ## How it works
-- `ipcalc/core.py`: all the maths, plain Python with the standard `ipaddress` module.
+- `ipcalc/core.py`: all the IPv4 maths, plain Python with the standard `ipaddress` module.
+- `ipcalc/ipv6.py`: the IPv6 maths.
 - `index.html` + `static/style.css`: the page.
 - `static/app.py`: connects the page to `core.py` (reads the boxes, writes the results).
 - `static/main.js`: starts Python in the browser with [Pyodide](https://pyodide.org), plus tabs, copy buttons and the Auto / Light / Dark theme switch (remembered per browser). No maths in here.
