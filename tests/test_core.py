@@ -17,6 +17,8 @@ from ipcalc.core import (
     parse_prefix,
     same_network,
     split_network,
+    parse_requirements,
+    vlsm,
     subnet_from_range,
     subnet_info,
     to_binary,
@@ -349,3 +351,55 @@ def test_split_big_network_lists_the_first_subnets_only():
 def test_split_errors(kwargs):
     with pytest.raises(IPCalcError):
         split_network("192.168.1.0/24", **kwargs)
+
+
+# ---------- VLSM ----------
+
+
+def test_vlsm_textbook_example():
+    plan = vlsm("192.168.1.0/24", None, "Sales 25\nIT 100\nHR 10\nLink 2\nLab 50")
+    rows = [(s.name, s.hosts_needed, f"{s.info.network}{s.info.cidr}", str(s.info.broadcast), s.info.usable_hosts) for s in plan.subnets]
+    assert rows == [
+        ("IT", 100, "192.168.1.0/25", "192.168.1.127", 126),
+        ("Lab", 50, "192.168.1.128/26", "192.168.1.191", 62),
+        ("Sales", 25, "192.168.1.192/27", "192.168.1.223", 30),
+        ("HR", 10, "192.168.1.224/28", "192.168.1.239", 14),
+        ("Link", 2, "192.168.1.240/30", "192.168.1.243", 2),
+    ]
+    assert (plan.used_addresses, plan.free_addresses, str(plan.next_free)) == (244, 12, "192.168.1.244")
+    assert plan.subnets[0].unused_hosts == 26
+
+
+def test_vlsm_equal_sizes_keep_their_order_and_fill_exactly():
+    plan = vlsm("10.0.0.0", "255.255.255.0", [("A", 60), ("B", 62), ("C", 33), ("D", 50)])
+    assert [(s.name, str(s.info.network)) for s in plan.subnets] == [
+        ("A", "10.0.0.0"),
+        ("B", "10.0.0.64"),
+        ("C", "10.0.0.128"),
+        ("D", "10.0.0.192"),
+    ]
+    assert plan.free_addresses == 0 and plan.next_free is None
+
+
+def test_vlsm_binary_network():
+    plan = vlsm("11000000.10101000.00001010.00000000/24", None, "30")
+    assert f"{plan.subnets[0].info.network}{plan.subnets[0].info.cidr}" == "192.168.10.0/27"
+
+
+@pytest.mark.parametrize("requests", ["200, 100", "300", "", "Sales", "Sales 0"])
+def test_vlsm_errors(requests):
+    with pytest.raises(IPCalcError):
+        vlsm("192.168.1.0/24", None, requests)
+
+
+@pytest.mark.parametrize(
+    "text,expected",
+    [
+        ("50, 20, 10", [("Subnet A", 50), ("Subnet B", 20), ("Subnet C", 10)]),
+        ("Sales 50\nIT: 20\nHR=10 hosts", [("Sales", 50), ("IT", 20), ("HR", 10)]),
+        ("Lab 1 30; 7", [("Lab 1", 30), ("Subnet A", 7)]),
+        ("\n 12 \n\n", [("Subnet A", 12)]),
+    ],
+)
+def test_parse_requirements(text, expected):
+    assert parse_requirements(text) == expected

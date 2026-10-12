@@ -28,6 +28,7 @@
     <button role="tab" aria-selected="false" data-tab="same">Same network?</button>
     <button role="tab" aria-selected="false" data-tab="conv">Decimal ⇄ Binary</button>
     <button role="tab" aria-selected="false" data-tab="split">Subnetting</button>
+    <button role="tab" aria-selected="false" data-tab="vlsm">VLSM</button>
     <button role="tab" aria-selected="false" data-tab="batch">Worksheet mode</button>
   </nav>
 
@@ -98,6 +99,30 @@
       <span class="hint copy-msg"></span>
     </div>
     <div class="tablewrap" id="p-table"></div>
+  </section>
+
+  <!-- VLSM -->
+  <section class="panel" data-pane="vlsm" hidden>
+    <div class="inputs">
+      <div class="field"><label for="l-net">Network <span class="badge" data-fmt></span></label>
+        <input id="l-net" value="192.168.1.0" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
+      <div class="field narrow"><label for="l-mask">Mask or CIDR <span class="badge" data-fmt></span></label>
+        <input id="l-mask" value="/24" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
+    </div>
+    <div class="field"><label for="l-req">Hosts needed: one subnet per line, with an optional name</label>
+<textarea id="l-req" spellcheck="false">Sales 25
+IT 100
+HR 10
+Router link 2
+Lab 50</textarea></div>
+    <div class="hint">Also accepts <code>50, 20, 10</code>. The biggest subnets are placed first so every block lines up with no gaps.</div>
+    <div id="l-out" aria-live="polite"></div>
+    <div class="actions">
+      <button class="btn" type="button" data-table="l-table">Copy table</button>
+      <button class="btn ghost" type="button" data-table="l-table" data-format="csv">Copy as CSV</button>
+      <span class="hint copy-msg"></span>
+    </div>
+    <div class="tablewrap" id="l-table"></div>
   </section>
 
   <!-- Worksheet mode -->

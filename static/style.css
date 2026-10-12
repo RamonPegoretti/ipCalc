@@ -81,3 +81,4 @@ footer a{color:var(--net)}
 .badge:empty{display:none}
 select{font-family:var(--sans);font-size:14px}
 .field.mode{flex:0 1 210px}
+.panel>.field{flex:none}
