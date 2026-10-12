@@ -57,13 +57,17 @@ document.addEventListener("click", async (e) => {
   button.textContent = (await copy(button.dataset.v)) ? "copied" : "select it";
   setTimeout(() => (button.textContent = "copy"), 1200);
 });
-const out = document.getElementById("b-out");
-const msg = document.getElementById("b-msg");
-document.getElementById("b-copy").addEventListener("click", async () => {
-  msg.textContent = (await copy(out.dataset.tsv || "")) ? "Copied. Paste it into Word or Excel." : "Copy was blocked; select the table instead.";
-});
-document.getElementById("b-csv").addEventListener("click", async () => {
-  msg.textContent = (await copy(out.dataset.csv || "")) ? "CSV copied." : "Copy was blocked; select the table instead.";
+// Buttons with data-table="<id>" copy that table as tab-separated text (pastes
+// into Word/Excel as a table) or, with data-format="csv", as CSV.
+document.addEventListener("click", async (e) => {
+  const button = e.target.closest("[data-table]");
+  if (!button) return;
+  const out = document.getElementById(button.dataset.table);
+  const csv = button.dataset.format === "csv";
+  const ok = await copy((csv ? out.dataset.csv : out.dataset.tsv) || "");
+  button.parentElement.querySelector(".copy-msg").textContent = ok
+    ? csv ? "CSV copied." : "Copied. Paste it into Word or Excel."
+    : "Copy was blocked; select the table instead.";
 });
 
 // ---------- Python ----------

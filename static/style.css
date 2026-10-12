@@ -79,3 +79,5 @@ code{font-family:var(--mono);font-size:.92em}
 .actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 footer a{color:var(--net)}
 .badge:empty{display:none}
+select{font-family:var(--sans);font-size:14px}
+.field.mode{flex:0 1 210px}

@@ -17,6 +17,7 @@ from ipcalc.core import (
     parse_address,
     parse_prefix,
     same_network,
+    split_network,
     subnet_from_range,
     subnet_info,
     to_binary,
@@ -219,13 +220,48 @@ def run_batch(*_):
                     str(result.usable_hosts),
                 ]
             )
-    head = "".join(f"<th>{escape(h)}</th>" for h in BATCH_HEADER)
+    render_table("b-out", BATCH_HEADER, rows)
+
+
+def render_table(element_id, header, rows, note=""):
+    """Draw a results table and keep copies of it for the copy buttons."""
+    head = "".join(f"<th>{escape(h)}</th>" for h in header)
     body = "".join("<tr>" + "".join(f"<td>{escape(c)}</td>" for c in row) + "</tr>" for row in rows)
-    out = el("b-out")
-    out.innerHTML = f"<table><tr>{head}</tr>{body}</table>"
-    table = [BATCH_HEADER] + rows
+    out = el(element_id)
+    out.innerHTML = f"<table><tr>{head}</tr>{body}</table>" + (f'<div class="hint">{escape(note)}</div>' if note else "")
+    table = [header] + rows
     out.dataset.tsv = "\n".join("\t".join(row) for row in table)
     out.dataset.csv = "\n".join(",".join(f'"{c}"' if "," in c else c for c in row) for row in table)
+
+
+SPLIT_HEADER = ["#", "Network", "First host", "Last host", "Broadcast"]
+
+
+def run_split(*_):
+    try:
+        address, mask = value("p-net"), value("p-mask")
+        mode = {value("p-mode"): value("p-n")}
+        plan = split_network(address, None if "/" in address else mask, **mode)
+    except IPCalcError as error:
+        el("p-out").innerHTML = error_box(error)
+        render_table("p-table", SPLIT_HEADER, [])
+        return
+    el("p-out").innerHTML = result_rows(
+        [
+            ("Network split", plan.parent),
+            ("New subnet mask", plan.netmask),
+            ("New CIDR", plan.cidr),
+            ("Borrowed bits", plan.borrowed_bits),
+            ("Subnets", f"{plan.subnet_count:,}"),
+            ("Usable hosts each", f"{plan.hosts_per_subnet:,}"),
+        ]
+    )
+    rows = [
+        [str(i), f"{s.network}{s.cidr}", str(s.first_host), str(s.last_host), str(s.broadcast)]
+        for i, s in enumerate(plan.subnets, start=1)
+    ]
+    note = f"Showing the first {len(rows):,} of {plan.subnet_count:,} subnets." if plan.truncated else ""
+    render_table("p-table", SPLIT_HEADER, rows, note)
 
 
 # ---------- start ----------
@@ -248,6 +284,10 @@ def start():
         ("s-b", run_same),
         ("v-in", run_conv),
         ("b-in", run_batch),
+        ("p-net", run_split),
+        ("p-mask", run_split),
+        ("p-mode", run_split),
+        ("p-n", run_split),
     ]:
         listen(element_id, handler)
     badges = create_proxy(update_badges)
@@ -255,6 +295,6 @@ def start():
     document.addEventListener("input", badges)
 
     el("version").textContent = f"v{__version__}"
-    for run in (run_calc, run_range, run_same, run_conv, run_batch, update_badges):
+    for run in (run_calc, run_range, run_same, run_conv, run_batch, run_split, update_badges):
         run()
 
