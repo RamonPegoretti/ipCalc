@@ -18,6 +18,7 @@ from ipcalc.core import (
     parse_prefix,
     same_network,
     split_network,
+    vlsm,
     subnet_from_range,
     subnet_info,
     to_binary,
@@ -264,6 +265,42 @@ def run_split(*_):
     render_table("p-table", SPLIT_HEADER, rows, note)
 
 
+VLSM_HEADER = ["Name", "Hosts needed", "Hosts available", "Network", "Subnet mask", "First host", "Last host", "Broadcast"]
+
+
+def run_vlsm(*_):
+    try:
+        address, mask = value("l-net"), value("l-mask")
+        plan = vlsm(address, None if "/" in address else mask, value("l-req"))
+    except IPCalcError as error:
+        el("l-out").innerHTML = error_box(error)
+        render_table("l-table", VLSM_HEADER, [])
+        return
+    el("l-out").innerHTML = result_rows(
+        [
+            ("Network", plan.parent),
+            ("Subnets", len(plan.subnets)),
+            ("Addresses used", f"{plan.used_addresses:,} of {plan.parent.num_addresses:,}"),
+            ("Addresses left", f"{plan.free_addresses:,}"),
+        ]
+        + ([("Next free address", plan.next_free)] if plan.next_free else [])
+    )
+    rows = [
+        [
+            s.name,
+            f"{s.hosts_needed:,}",
+            f"{s.info.usable_hosts:,}",
+            f"{s.info.network}{s.info.cidr}",
+            str(s.info.netmask),
+            str(s.info.first_host),
+            str(s.info.last_host),
+            str(s.info.broadcast),
+        ]
+        for s in plan.subnets
+    ]
+    render_table("l-table", VLSM_HEADER, rows)
+
+
 # ---------- start ----------
 
 
@@ -288,6 +325,9 @@ def start():
         ("p-mask", run_split),
         ("p-mode", run_split),
         ("p-n", run_split),
+        ("l-net", run_vlsm),
+        ("l-mask", run_vlsm),
+        ("l-req", run_vlsm),
     ]:
         listen(element_id, handler)
     badges = create_proxy(update_badges)
@@ -295,6 +335,6 @@ def start():
     document.addEventListener("input", badges)
 
     el("version").textContent = f"v{__version__}"
-    for run in (run_calc, run_range, run_same, run_conv, run_batch, run_split, update_badges):
+    for run in (run_calc, run_range, run_same, run_conv, run_batch, run_split, run_vlsm, update_badges):
         run()
 

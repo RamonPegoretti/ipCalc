@@ -150,6 +150,37 @@ class SubnetPlan:
 
 
 @dataclass(frozen=True)
+class VlsmSubnet:
+    name: str
+    hosts_needed: int
+    info: SubnetInfo
+
+    @property
+    def unused_hosts(self) -> int:
+        return self.info.usable_hosts - self.hosts_needed
+
+
+@dataclass(frozen=True)
+class VlsmPlan:
+    """Subnets of different sizes packed into one network, biggest first."""
+
+    parent: IPv4Network
+    subnets: list[VlsmSubnet]
+    used_addresses: int
+
+    @property
+    def free_addresses(self) -> int:
+        return self.parent.num_addresses - self.used_addresses
+
+    @property
+    def next_free(self) -> IPv4Address | None:
+        """First address not given to any subnet, if any is left."""
+        if not self.free_addresses:
+            return None
+        return self.parent.network_address + self.used_addresses
+
+
+@dataclass(frozen=True)
 class SameNetwork:
     same: bool
     network_a: IPv4Network
@@ -315,6 +346,80 @@ def split_network(
     )
 
 
+_REQUIREMENT = re.compile(r"(?:(.*?)\s*(?:[:=]\s*|\s+))?(\d+)\s*(?:hosts?)?", re.IGNORECASE)
+
+
+def parse_requirements(text: str) -> list[tuple[str, int]]:
+    """Read VLSM host counts: one per line, optionally named.
+
+    Accepts "Sales 50", "Sales: 50", "50 hosts", or just numbers separated by
+    commas, semicolons or new lines. Unnamed subnets are called Subnet A, Subnet B, ...
+    """
+    entries = [part.strip() for part in re.split(r"[,;\n]", text)]
+    requirements: list[tuple[str, int]] = []
+    for entry in entries:
+        if not entry:
+            continue
+        match = _REQUIREMENT.fullmatch(entry)
+        if not match:
+            raise IPCalcError(f"'{entry}' is not a subnet request: write a name and a host count, e.g. Sales 50.")
+        name = (match.group(1) or "").strip()
+        hosts = _positive_number(match.group(2), "hosts")
+        requirements.append((name, hosts))
+    if not requirements:
+        raise IPCalcError("Enter how many hosts each subnet needs, e.g. 50, 20, 10.")
+    unnamed = 0
+    named = []
+    for name, hosts in requirements:
+        if not name:
+            name = f"Subnet {_letters(unnamed)}"
+            unnamed += 1
+        named.append((name, hosts))
+    return named
+
+
+def _letters(index: int) -> str:
+    """0 -> A, 25 -> Z, 26 -> AA"""
+    letters = ""
+    index += 1
+    while index:
+        index, rest = divmod(index - 1, 26)
+        letters = chr(65 + rest) + letters
+    return letters
+
+
+def vlsm(network: str, mask: str | None, requirements: str | list[tuple[str, int]]) -> VlsmPlan:
+    """Give each request the smallest subnet that fits, biggest first.
+
+    >>> plan = vlsm("192.168.1.0/24", None, "50, 20, 10")
+    >>> [(s.name, str(s.info.network) + s.info.cidr) for s in plan.subnets]
+    [('Subnet A', '192.168.1.0/26'), ('Subnet B', '192.168.1.64/27'), ('Subnet C', '192.168.1.96/28')]
+    """
+    ip, prefix = parse_host(network, mask)
+    parent = IPv4Network((ip, prefix), strict=False)
+    if isinstance(requirements, str):
+        requirements = parse_requirements(requirements)
+
+    # Biggest block first keeps every block aligned on its own size with no
+    # gaps; blocks of the same size keep the order they were typed in.
+    ordered = sorted(enumerate(requirements), key=lambda item: (-(item[1][1] + 1).bit_length(), item[0]))
+    subnets: list[VlsmSubnet] = []
+    offset = 0
+    for _, (name, hosts) in ordered:
+        sub_prefix = 32 - (hosts + 1).bit_length()
+        size = 2 ** (32 - sub_prefix)
+        if sub_prefix < prefix or offset + size > parent.num_addresses:
+            needed = offset + size
+            raise IPCalcError(
+                f"{parent} is too small: with {name} ({hosts:,} hosts, a /{sub_prefix}) the subnets "
+                f"need at least {needed:,} addresses, but it only has {parent.num_addresses:,}."
+            )
+        info = _info(parent.network_address + offset, sub_prefix)
+        subnets.append(VlsmSubnet(name=name, hosts_needed=hosts, info=info))
+        offset += size
+    return VlsmPlan(parent=parent, subnets=subnets, used_addresses=offset)
+
+
 def to_binary(address: IPv4Address | str) -> str:
     """192.168.1.1 -> 11000000.10101000.00000001.00000001"""
     if isinstance(address, str):
@@ -373,6 +478,8 @@ __all__ = [
     "SubnetInfo",
     "SameNetwork",
     "SubnetPlan",
+    "VlsmPlan",
+    "VlsmSubnet",
     "Conversion",
     "parse_address",
     "parse_prefix",
@@ -381,6 +488,8 @@ __all__ = [
     "subnet_from_range",
     "same_network",
     "split_network",
+    "parse_requirements",
+    "vlsm",
     "to_binary",
     "convert",
     "worksheet",
