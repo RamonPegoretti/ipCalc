@@ -1,0 +1,36 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Check the version was raised
+        # Every change shows up on the site as a new "v x.y.z": bump major for big
+        # changes, minor for new features, patch for fixes (see README).
+        if: github.event_name == 'pull_request' && github.actor != 'dependabot[bot]'
+        run: |
+          git fetch --depth=1 origin "$GITHUB_BASE_REF"
+          base=$(git show FETCH_HEAD:ipcalc/__init__.py 2>/dev/null || true)
+          python - "$base" <<'PY'
+          import re, sys
+          def version(text):
+              m = re.search(r'__version__\s*=\s*"(\d+)\.(\d+)\.(\d+)"', text)
+              return tuple(map(int, m.groups())) if m else (0, 0, 0)
+          base = version(sys.argv[1])
+          head = version(open("ipcalc/__init__.py").read())
+          show = lambda v: ".".join(map(str, v))
+          if head <= base:
+              sys.exit(f"ipcalc/__init__.py version must go above {show(base)} (it is {show(head)})")
+          print(f"version {show(base)} -> {show(head)}")
+          PY
+      - run: pip install pytest
+      - run: pytest -v
