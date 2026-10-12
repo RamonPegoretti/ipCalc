@@ -70,9 +70,12 @@ footer{font-size:12px;color:var(--muted)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 .status{font-size:13px;color:var(--muted);margin-left:auto}
 .status.ready{display:none}
+.theme{margin-left:auto;font:500 13px var(--sans);color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:4px 10px;cursor:pointer}
+.status:not(.ready)+.theme{margin-left:0}
 .status.failed{color:var(--bad)}
 footer{display:flex;flex-wrap:wrap;gap:4px 12px;justify-content:space-between}
 .version{opacity:.7;user-select:none}
 code{font-family:var(--mono);font-size:.92em}
 .actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 footer a{color:var(--net)}
+.badge:empty{display:none}
