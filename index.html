@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ipCalc</title>
+<meta name="description" content="IPv4 subnet calculator. Type any IP or mask in decimal or binary.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="static/style.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>ip<span>Calc</span></h1>
+    <span class="sub">IPv4 subnet calculator. Type any IP in decimal or binary; results are always in decimal.</span>
+    <span class="status" id="status">Starting Python…</span>
+  </header>
+
+  <nav role="tablist" aria-label="Tools">
+    <button role="tab" aria-selected="true" data-tab="calc">Subnet info</button>
+    <button role="tab" aria-selected="false" data-tab="range">Network → CIDR</button>
+    <button role="tab" aria-selected="false" data-tab="same">Same network?</button>
+    <button role="tab" aria-selected="false" data-tab="conv">Decimal ⇄ Binary</button>
+    <button role="tab" aria-selected="false" data-tab="batch">Worksheet mode</button>
+  </nav>
+
+  <!-- Subnet info -->
+  <section class="panel" data-pane="calc">
+    <div class="inputs">
+      <div class="field"><label for="c-ip">IP address <span class="badge" data-fmt></span></label>
+        <input id="c-ip" value="192.168.10.97" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
+      <div class="field"><label for="c-mask">Mask or CIDR <span class="badge" data-fmt></span></label>
+        <input id="c-mask" value="255.255.255.224" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
+    </div>
+    <div class="hint">Try <code>192.168.1.45/27</code> in one box, a mask like <code>/26</code>, or binary like <code>11000000.10101000.00001010.01100001</code>.</div>
+    <div id="c-out" aria-live="polite"></div>
+  </section>
+
+  <!-- Network + broadcast -> CIDR -->
+  <section class="panel" data-pane="range" hidden>
+    <div class="inputs">
+      <div class="field"><label for="r-net">Network address <span class="badge" data-fmt></span></label>
+        <input id="r-net" value="192.168.100.240" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
+      <div class="field"><label for="r-bc">Broadcast address <span class="badge" data-fmt></span></label>
+        <input id="r-bc" value="192.168.100.247" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
+    </div>
+    <div class="hint">Either box can be decimal or binary.</div>
+    <div id="r-out" aria-live="polite"></div>
+  </section>
+
+  <!-- Same network? -->
+  <section class="panel" data-pane="same" hidden>
+    <div class="inputs">
+      <div class="field"><label for="s-a">This PC <span class="badge" data-fmt></span></label>
+        <input id="s-a" value="192.168.10.97" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
+      <div class="field narrow"><label for="s-m">Mask or CIDR <span class="badge" data-fmt></span></label>
+        <input id="s-m" value="255.255.255.224" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
+      <div class="field"><label for="s-b">Other IP <span class="badge" data-fmt></span></label>
+        <input id="s-b" value="192.168.10.110" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
+    </div>
+    <div id="s-out" aria-live="polite"></div>
+  </section>
+
+  <!-- Converter -->
+  <section class="panel" data-pane="conv" hidden>
+    <div class="inputs">
+      <div class="field"><label for="v-in">Number, octet or full address <span class="badge" data-fmt></span></label>
+        <input id="v-in" value="178" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
+    </div>
+    <div class="hint">Accepts <code>178</code>, <code>10110010</code>, <code>192.168.1.1</code> or a dotted binary address. Binary means exactly 8 zeros/ones per octet.</div>
+    <div id="v-out" aria-live="polite"></div>
+  </section>
+
+  <!-- Worksheet mode -->
+  <section class="panel" data-pane="batch" hidden>
+    <div class="field"><label for="b-in">One per line: IP/CIDR, IP mask, or network broadcast. Decimal or binary.</label>
+<textarea id="b-in" spellcheck="false">192.168.1.45/27
+192.168.1.94/27
+192.168.10.150/26
+192.168.50.78 255.255.255.240
+192.168.1.0 192.168.1.31
+00001010.00010100.00011110.01001101/27</textarea></div>
+    <div class="actions">
+      <button class="btn" id="b-copy" type="button">Copy table</button>
+      <button class="btn ghost" id="b-csv" type="button">Copy as CSV</button>
+      <span class="hint" id="b-msg"></span>
+    </div>
+    <div class="tablewrap" id="b-out"></div>
+  </section>
+
+  <footer>
+    <span>Calculations run in your browser with Python's <code>ipaddress</code> module.
+      <a href="https://github.com/RamonPegoretti/ipCalc">Source on GitHub</a></span>
+    <span class="version" id="version"></span>
+  </footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.27.7/full/pyodide.js"></script>
+<script src="static/main.js"></script>
+</body>
+</html>
