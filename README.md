@@ -16,7 +16,7 @@ What it solves:
 - `ipcalc/core.py`: all the maths, plain Python with the standard `ipaddress` module.
 - `index.html` + `static/style.css`: the page.
 - `static/app.py`: connects the page to `core.py` (reads the boxes, writes the results).
-- `static/main.js`: starts Python in the browser with [Pyodide](https://pyodide.org), plus tabs and copy buttons. No maths in here.
+- `static/main.js`: starts Python in the browser with [Pyodide](https://pyodide.org), plus tabs, copy buttons and the Auto / Light / Dark theme switch (remembered per browser). No maths in here.
 - Every push to `main` is published to GitHub Pages by `.github/workflows/pages.yml`.
 
 The first visit takes a few seconds while Python downloads; after that the browser caches it.

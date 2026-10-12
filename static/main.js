@@ -22,6 +22,26 @@ tabs.forEach((t) =>
 const fromHash = location.hash.slice(1);
 if ([...tabs].some((t) => t.dataset.tab === fromHash)) showTab(fromHash);
 
+// ---------- theme: Auto (follow the device) -> Light -> Dark ----------
+const themeButton = document.getElementById("theme");
+const THEMES = ["auto", "light", "dark"];
+const THEME_NAMES = { auto: "Auto", light: "Light", dark: "Dark" };
+function setTheme(theme) {
+  if (theme === "auto") delete document.documentElement.dataset.theme;
+  else document.documentElement.dataset.theme = theme;
+  themeButton.textContent = THEME_NAMES[theme];
+  themeButton.setAttribute("aria-label", `Theme: ${theme === "auto" ? "automatic" : theme}. Click to change.`);
+  try {
+    if (theme === "auto") localStorage.removeItem("theme");
+    else localStorage.setItem("theme", theme);
+  } catch {}
+}
+setTheme(document.documentElement.dataset.theme || "auto");
+themeButton.addEventListener("click", () => {
+  const current = document.documentElement.dataset.theme || "auto";
+  setTheme(THEMES[(THEMES.indexOf(current) + 1) % THEMES.length]);
+});
+
 // ---------- copy ----------
 async function copy(text) {
   try {
