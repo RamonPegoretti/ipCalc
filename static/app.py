@@ -24,6 +24,7 @@ from ipcalc.core import (
     to_binary,
     worksheet,
 )
+from ipcalc.ipv6 import info6, parse_address6, power_of_two, split6
 
 _handlers = []  # keeps the event proxies alive
 
@@ -87,6 +88,13 @@ def update_badges(*_):
                 badge.textContent = "?" if box.value.strip() else ""
         else:
             badge.textContent = input_format(box.value)
+    box = el("x-ip")
+    head = box.value.split("/")[0]
+    try:
+        fmt = parse_address6(head)[1] if head.strip() else ""
+    except IPCalcError:
+        fmt = "?"
+    document.querySelector("[data-fmt6]").textContent = fmt
 
 
 # ---------- tabs ----------
@@ -301,6 +309,69 @@ def run_vlsm(*_):
     render_table("l-table", VLSM_HEADER, rows)
 
 
+def working6(info):
+    bits = format(int(info.address), "0128b")
+    groups = info.expanded.split(":")
+    rows = []
+    for g in range(8):
+        spans = "".join(
+            f'<span class="{"b-n" if g * 16 + i < info.prefix else "b-h"}">{bits[g * 16 + i]}</span>'
+            for i in range(16)
+        )
+        rows.append(f"<tr><th>{groups[g]}</th><td>{spans}</td></tr>")
+    host_bits = 128 - info.prefix
+    return f"""<details><summary>Show the working (binary)</summary>
+<div class="bits"><table>{"".join(rows)}</table></div>
+<div class="legend"><span><i style="background:var(--net)"></i>network bits ({info.prefix})</span><span><i style="background:var(--host)"></i>interface / host bits ({host_bits})</span></div>
+<div class="steps">{escape(f"Each group is 4 hex digits = 16 bits. The first {info.prefix} bits are the network, so there are 2^{host_bits} addresses in it.")}</div></details>"""
+
+
+def run_ipv6(*_):
+    try:
+        address, length = value("x-ip"), value("x-len")
+        info = info6(address, None if "/" in address else length)
+    except IPCalcError as error:
+        el("x-out").innerHTML = error_box(error)
+        return
+    pairs = [
+        ("Compressed", info.compressed),
+        ("Expanded", info.expanded),
+        ("Network", info.network),
+        ("First address", info.first),
+        ("Last address", info.last),
+        ("Prefix", f"/{info.prefix}"),
+        ("Addresses", power_of_two(info.total_addresses)),
+    ]
+    if info.subnets_64 is not None:
+        pairs.append(("/64 subnets inside", power_of_two(info.subnets_64)))
+    pairs.append(("Type", info.type))
+    el("x-out").innerHTML = result_rows(pairs) + working6(info)
+
+
+SPLIT6_HEADER = ["#", "Subnet", "First address", "Last address"]
+
+
+def run_split6(*_):
+    try:
+        address, length = value("x-ip"), value("x-len")
+        plan = split6(address, None if "/" in address else length, value("x-new"))
+    except IPCalcError as error:
+        el("x-split").innerHTML = error_box(error)
+        render_table("x-table", SPLIT6_HEADER, [])
+        return
+    el("x-split").innerHTML = result_rows(
+        [("Subnets", power_of_two(plan.subnet_count)), ("Each one holds", power_of_two(plan.subnets[0].num_addresses))]
+    )
+    rows = [[str(i), str(s), str(s.network_address), str(s.broadcast_address)] for i, s in enumerate(plan.subnets, start=1)]
+    note = f"Showing the first {len(rows):,} of {plan.subnet_count:,} subnets." if plan.truncated else ""
+    render_table("x-table", SPLIT6_HEADER, rows, note)
+
+
+def run_v6(*_):
+    run_ipv6()
+    run_split6()
+
+
 # ---------- start ----------
 
 
@@ -328,6 +399,9 @@ def start():
         ("l-net", run_vlsm),
         ("l-mask", run_vlsm),
         ("l-req", run_vlsm),
+        ("x-ip", run_v6),
+        ("x-len", run_v6),
+        ("x-new", run_split6),
     ]:
         listen(element_id, handler)
     badges = create_proxy(update_badges)
@@ -335,6 +409,6 @@ def start():
     document.addEventListener("input", badges)
 
     el("version").textContent = f"v{__version__}"
-    for run in (run_calc, run_range, run_same, run_conv, run_batch, run_split, run_vlsm, update_badges):
+    for run in (run_calc, run_range, run_same, run_conv, run_batch, run_split, run_vlsm, run_v6, update_badges):
         run()
 
