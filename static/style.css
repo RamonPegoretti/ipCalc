@@ -21,6 +21,8 @@ body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--sans);pa
 header{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px}
 h1{font:600 22px/1.2 var(--mono);margin:0;letter-spacing:-.01em}
 h1 span{color:var(--net)}
+h1{display:inline-flex;align-items:center;align-self:center}
+.logo{flex:none;display:block;margin-right:8px}
 .sub{color:var(--muted);font-size:14px}
 nav{display:flex;gap:4px;overflow-x:auto;border-bottom:1px solid var(--line)}
 nav button{font:500 14px var(--sans);color:var(--muted);background:none;border:0;border-bottom:2px solid transparent;padding:10px 12px;cursor:pointer;white-space:nowrap}

@@ -7,6 +7,7 @@
 <meta name="description" content="IPv4 subnet calculator. Type any IP or mask in decimal or binary.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="icon" href="static/logo.svg" type="image/svg+xml">
 <link rel="stylesheet" href="static/style.css">
 <script>
   // Apply the saved theme before the page draws, so it never flashes the wrong one.
@@ -16,7 +17,7 @@
 <body>
 <div class="wrap">
   <header>
-    <h1>ip<span>Calc</span></h1>
+    <h1><img class="logo" src="static/logo.svg" alt="" width="26" height="26">ip<span>Calc</span></h1>
     <span class="sub">IPv4 subnet calculator. Type any IP in decimal or binary; results are always in decimal.</span>
     <span class="status" id="status">Starting Python…</span>
     <button class="theme" id="theme" type="button" aria-label="Theme: automatic">Auto</button>
