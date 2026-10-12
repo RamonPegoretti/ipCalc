@@ -10,6 +10,7 @@ What it solves:
 - **Network → CIDR:** network + broadcast address → CIDR and subnet mask
 - **Same network?:** can two PCs talk directly?
 - **Decimal ⇄ binary:** single octets or whole addresses
+- **Subnetting:** split a network into N subnets, or into subnets of at least X hosts
 - **Worksheet mode:** many lines at once
 
 ## How it works
@@ -23,13 +24,14 @@ The first visit takes a few seconds while Python downloads; after that the brows
 
 ## Use it from Python
 ```python
-from ipcalc.core import subnet_info, subnet_from_range, same_network, convert
+from ipcalc.core import subnet_info, subnet_from_range, same_network, convert, split_network
 
 info = subnet_info("192.168.1.45/27")            # or subnet_info("192.168.1.45", "255.255.255.224")
 info.network, info.broadcast, info.gateway, info.last_host, info.netmask
 subnet_from_range("192.168.100.240", "192.168.100.247").cidr   # '/29'
 same_network("192.168.10.97", "/27", "192.168.10.110").same     # True
 convert("10110010").decimal                                     # '178'
+split_network("192.168.1.0/24", count=4).cidr                   # '/26'
 ```
 Binary input works everywhere, e.g. `subnet_info("11000000.10101000.00000001.00101101/27")`.
 Binary means groups of exactly 8 bits, so `10.0.0.1` is always read as decimal.

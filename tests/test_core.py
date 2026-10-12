@@ -16,6 +16,7 @@ from ipcalc.core import (
     parse_address,
     parse_prefix,
     same_network,
+    split_network,
     subnet_from_range,
     subnet_info,
     to_binary,
@@ -280,3 +281,71 @@ def test_octet_too_big():
 
 def test_version_is_semver():
     assert len(__version__.split(".")) == 3
+
+
+# ---------- subnetting ----------
+
+
+def test_split_by_count():
+    plan = split_network("192.168.1.0/24", count=4)
+    assert (plan.cidr, str(plan.netmask), plan.borrowed_bits, plan.subnet_count, plan.hosts_per_subnet) == (
+        "/26",
+        "255.255.255.192",
+        2,
+        4,
+        62,
+    )
+    assert [(str(s.network), str(s.first_host), str(s.last_host), str(s.broadcast)) for s in plan.subnets] == [
+        ("192.168.1.0", "192.168.1.1", "192.168.1.62", "192.168.1.63"),
+        ("192.168.1.64", "192.168.1.65", "192.168.1.126", "192.168.1.127"),
+        ("192.168.1.128", "192.168.1.129", "192.168.1.190", "192.168.1.191"),
+        ("192.168.1.192", "192.168.1.193", "192.168.1.254", "192.168.1.255"),
+    ]
+
+
+@pytest.mark.parametrize(
+    "count,prefix,made",
+    [(1, 24, 1), (2, 25, 2), (3, 26, 4), (5, 27, 8), (6, 27, 8), (8, 27, 8), (9, 28, 16), (64, 30, 64)],
+)
+def test_split_rounds_up_to_a_power_of_two(count, prefix, made):
+    plan = split_network("192.168.1.0", "255.255.255.0", count=count)
+    assert (plan.prefix, plan.subnet_count) == (prefix, made)
+
+
+@pytest.mark.parametrize(
+    "hosts,prefix,per_subnet",
+    [(1, 30, 2), (2, 30, 2), (3, 29, 6), (6, 29, 6), (7, 28, 14), (30, 27, 30), (50, 26, 62), (62, 26, 62), (63, 25, 126)],
+)
+def test_split_by_hosts(hosts, prefix, per_subnet):
+    plan = split_network("192.168.1.0/24", hosts=hosts)
+    assert (plan.prefix, plan.hosts_per_subnet) == (prefix, per_subnet)
+    assert plan.subnet_count == 2 ** (prefix - 24)
+
+
+def test_split_accepts_binary_and_ignores_host_bits():
+    plan = split_network("11000000.10101000.00000001.01001101", "/24", count="2")
+    assert str(plan.parent) == "192.168.1.0/24"
+    assert [str(s.network) for s in plan.subnets] == ["192.168.1.0", "192.168.1.128"]
+
+
+def test_split_big_network_lists_the_first_subnets_only():
+    plan = split_network("10.0.0.0/8", hosts=2)
+    assert (plan.prefix, plan.subnet_count, len(plan.subnets), plan.truncated) == (30, 4_194_304, 1024, True)
+    assert str(plan.subnets[-1].network) == "10.0.15.252"
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"count": 0},
+        {"count": "abc"},
+        {"count": 512},  # a /24 only has room for 256
+        {"hosts": 300},  # more than a /24 holds
+        {"hosts": -1},
+        {},
+        {"count": 2, "hosts": 2},
+    ],
+)
+def test_split_errors(kwargs):
+    with pytest.raises(IPCalcError):
+        split_network("192.168.1.0/24", **kwargs)

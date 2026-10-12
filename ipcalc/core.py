@@ -129,6 +129,27 @@ class SubnetInfo:
 
 
 @dataclass(frozen=True)
+class SubnetPlan:
+    """A network split into equal subnets."""
+
+    parent: IPv4Network
+    prefix: int  # prefix length of each new subnet
+    borrowed_bits: int
+    subnet_count: int
+    hosts_per_subnet: int
+    netmask: IPv4Address
+    subnets: list[SubnetInfo]  # at most MAX_LISTED_SUBNETS of them
+
+    @property
+    def cidr(self) -> str:
+        return f"/{self.prefix}"
+
+    @property
+    def truncated(self) -> bool:
+        return len(self.subnets) < self.subnet_count
+
+
+@dataclass(frozen=True)
 class SameNetwork:
     same: bool
     network_a: IPv4Network
@@ -232,6 +253,68 @@ def same_network(address: str, mask: str | None, other: str) -> SameNetwork:
     return SameNetwork(same=net_a == net_b, network_a=net_a, network_b=net_b)
 
 
+MAX_LISTED_SUBNETS = 1024
+
+
+def _positive_number(text: int | str, what: str) -> int:
+    try:
+        number = int(str(text).strip())
+    except ValueError:
+        raise IPCalcError(f"Enter the number of {what} as a whole number, e.g. 4.") from None
+    if number < 1:
+        raise IPCalcError(f"The number of {what} must be at least 1.")
+    return number
+
+
+def split_network(
+    network: str,
+    mask: str | None = None,
+    *,
+    count: int | str | None = None,
+    hosts: int | str | None = None,
+) -> SubnetPlan:
+    """Split a network into equal subnets.
+
+    Give either `count` (at least this many subnets) or `hosts` (at least
+    this many usable hosts in each subnet). Host bits in `network` are
+    ignored, so 192.168.1.77/24 splits 192.168.1.0/24.
+
+    >>> plan = split_network("192.168.1.0/24", count=4)
+    >>> plan.cidr, [str(s.network) for s in plan.subnets]
+    ('/26', ['192.168.1.0', '192.168.1.64', '192.168.1.128', '192.168.1.192'])
+    """
+    if (count is None) == (hosts is None):
+        raise IPCalcError("Choose either a number of subnets or a number of hosts per subnet.")
+    ip, prefix = parse_host(network, mask)
+    parent = IPv4Network((ip, prefix), strict=False)
+
+    if count is not None:
+        wanted = _positive_number(count, "subnets")
+        new_prefix = prefix + (wanted - 1).bit_length()
+        if new_prefix > 32:
+            raise IPCalcError(f"A /{prefix} can be split into at most {2 ** (32 - prefix):,} subnets.")
+    else:
+        wanted = _positive_number(hosts, "hosts")
+        new_prefix = 32 - (wanted + 1).bit_length()  # room for the hosts + network + broadcast
+        if new_prefix < prefix:
+            room = _info(parent.network_address, prefix).usable_hosts
+            raise IPCalcError(f"{wanted:,} hosts don't fit in a /{prefix}: it has room for {room:,}.")
+
+    subnet_count = 2 ** (new_prefix - prefix)
+    size = 2 ** (32 - new_prefix)
+    first = int(parent.network_address)
+    listed = [_info(IPv4Address(first + i * size), new_prefix) for i in range(min(subnet_count, MAX_LISTED_SUBNETS))]
+    return SubnetPlan(
+        parent=parent,
+        prefix=new_prefix,
+        borrowed_bits=new_prefix - prefix,
+        subnet_count=subnet_count,
+        hosts_per_subnet=_info(parent.network_address, new_prefix).usable_hosts,
+        netmask=IPv4Network((0, new_prefix)).netmask,
+        subnets=listed,
+    )
+
+
 def to_binary(address: IPv4Address | str) -> str:
     """192.168.1.1 -> 11000000.10101000.00000001.00000001"""
     if isinstance(address, str):
@@ -289,6 +372,7 @@ __all__ = [
     "IPCalcError",
     "SubnetInfo",
     "SameNetwork",
+    "SubnetPlan",
     "Conversion",
     "parse_address",
     "parse_prefix",
@@ -296,6 +380,7 @@ __all__ = [
     "subnet_info",
     "subnet_from_range",
     "same_network",
+    "split_network",
     "to_binary",
     "convert",
     "worksheet",

@@ -27,6 +27,7 @@
     <button role="tab" aria-selected="false" data-tab="range">Network → CIDR</button>
     <button role="tab" aria-selected="false" data-tab="same">Same network?</button>
     <button role="tab" aria-selected="false" data-tab="conv">Decimal ⇄ Binary</button>
+    <button role="tab" aria-selected="false" data-tab="split">Subnetting</button>
     <button role="tab" aria-selected="false" data-tab="batch">Worksheet mode</button>
   </nav>
 
@@ -77,6 +78,28 @@
     <div id="v-out" aria-live="polite"></div>
   </section>
 
+  <!-- Subnetting -->
+  <section class="panel" data-pane="split" hidden>
+    <div class="inputs">
+      <div class="field"><label for="p-net">Network to split <span class="badge" data-fmt></span></label>
+        <input id="p-net" value="192.168.1.0" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
+      <div class="field narrow"><label for="p-mask">Mask or CIDR <span class="badge" data-fmt></span></label>
+        <input id="p-mask" value="/24" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
+      <div class="field mode"><label for="p-mode">Split into</label>
+        <select id="p-mode"><option value="count">Number of subnets</option><option value="hosts">Hosts per subnet</option></select></div>
+      <div class="field narrow"><label for="p-n">How many</label>
+        <input id="p-n" value="4" inputmode="numeric" autocomplete="off"></div>
+    </div>
+    <div class="hint">Subnet counts round up to a power of two: asking for 5 subnets gives 8. Hosts per subnet leaves room for the network and broadcast addresses.</div>
+    <div id="p-out" aria-live="polite"></div>
+    <div class="actions">
+      <button class="btn" type="button" data-table="p-table">Copy table</button>
+      <button class="btn ghost" type="button" data-table="p-table" data-format="csv">Copy as CSV</button>
+      <span class="hint copy-msg"></span>
+    </div>
+    <div class="tablewrap" id="p-table"></div>
+  </section>
+
   <!-- Worksheet mode -->
   <section class="panel" data-pane="batch" hidden>
     <div class="field"><label for="b-in">One per line: IP/CIDR, IP mask, or network broadcast. Decimal or binary.</label>
@@ -87,9 +110,9 @@
 192.168.1.0 192.168.1.31
 00001010.00010100.00011110.01001101/27</textarea></div>
     <div class="actions">
-      <button class="btn" id="b-copy" type="button">Copy table</button>
-      <button class="btn ghost" id="b-csv" type="button">Copy as CSV</button>
-      <span class="hint" id="b-msg"></span>
+      <button class="btn" type="button" data-table="b-out">Copy table</button>
+      <button class="btn ghost" type="button" data-table="b-out" data-format="csv">Copy as CSV</button>
+      <span class="hint copy-msg"></span>
     </div>
     <div class="tablewrap" id="b-out"></div>
   </section>
