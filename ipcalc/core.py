@@ -181,6 +181,16 @@ class VlsmPlan:
 
 
 @dataclass(frozen=True)
+class Solution:
+    """The subnet worked out from any two (or more) known values."""
+
+    info: SubnetInfo
+    given: list[str]  # names of the boxes that were filled in
+    alternatives: list[int]  # other prefix lengths that also fit, smallest subnet first
+    note: str = ""
+
+
+@dataclass(frozen=True)
 class SameNetwork:
     same: bool
     network_a: IPv4Network
@@ -282,6 +292,121 @@ def same_network(address: str, mask: str | None, other: str) -> SameNetwork:
     net_a = IPv4Network((ip, prefix), strict=False)
     net_b = IPv4Network((other_ip, prefix), strict=False)
     return SameNetwork(same=net_a == net_b, network_a=net_a, network_b=net_b)
+
+
+FIELDS = {
+    "ip": "IP host",
+    "network": "Network",
+    "broadcast": "Broadcast",
+    "hosts": "Number of hosts",
+    "mask": "Subnet mask",
+}
+
+
+def solve(
+    ip: str = "",
+    network: str = "",
+    broadcast: str = "",
+    hosts: int | str = "",
+    mask: str = "",
+) -> Solution:
+    """Work out the whole subnet from any two of the five values.
+
+    Leave the unknown ones empty. If the values allow more than one subnet
+    (an IP host and its network, say), the smallest subnet that fits is
+    chosen and the other possible prefixes are listed in `alternatives`.
+
+    >>> s = solve(network="192.168.1.0", hosts="50")
+    >>> str(s.info.netmask), str(s.info.broadcast)
+    ('255.255.255.192', '192.168.1.63')
+    """
+    values = {"ip": ip, "network": network, "broadcast": broadcast, "hosts": str(hosts), "mask": mask}
+    given = [name for name, text in values.items() if text.strip()]
+    if "/" in ip and "mask" not in given:  # "192.168.1.45/27" fills two boxes in one
+        given.append("mask")
+    if len(given) < 2:
+        raise IPCalcError("Fill in at least two boxes, e.g. an IP host and a subnet mask.")
+
+    ip_addr = net_addr = bc_addr = None
+    prefix = needed = None
+    if ip.strip():
+        if "/" in ip:  # "192.168.1.45/27" in the IP box also gives the mask
+            ip_addr, prefix = parse_host(ip)
+        else:
+            ip_addr, _ = parse_address(ip)
+    if network.strip():
+        net_addr, _ = parse_address(network)
+    if broadcast.strip():
+        bc_addr, _ = parse_address(broadcast)
+    if mask.strip():
+        mask_prefix, _ = parse_prefix(mask)
+        if prefix is not None and mask_prefix != prefix:
+            raise IPCalcError(f"The IP host says /{prefix} but the subnet mask says /{mask_prefix}.")
+        prefix = mask_prefix
+    if str(hosts).strip():
+        needed = _positive_number(hosts, "hosts")
+        if needed > 2**32 - 2:
+            raise IPCalcError(f"{needed:,} hosts is more than a whole IPv4 network can hold.")
+
+    if prefix is not None and needed is not None:
+        room = _info(IPv4Address(0), prefix).usable_hosts
+        if needed > room:
+            raise IPCalcError(f"{needed:,} hosts don't fit in a /{prefix}: it has room for {room:,}.")
+
+    anchor = ip_addr or net_addr or bc_addr
+    if anchor is None:
+        # Only the mask and the host count: there is no address to place the subnet.
+        room = _info(IPv4Address(0), prefix).usable_hosts
+        raise IPCalcError(
+            f"A /{prefix} has room for {room:,} hosts, so {needed:,} fit. To get the network and broadcast, "
+            "also fill in an IP host, network or broadcast address."
+        )
+
+    def fits(p: int) -> bool:
+        net = IPv4Network((anchor, p), strict=False)
+        if net_addr is not None and net.network_address != net_addr:
+            return False
+        if bc_addr is not None and net.broadcast_address != bc_addr:
+            return False
+        if ip_addr is not None and ip_addr not in net:
+            return False
+        if needed is not None and _info(anchor, p).usable_hosts < needed:
+            return False
+        return True
+
+    candidates = [p for p in ([prefix] if prefix is not None else range(32, -1, -1)) if fits(p)]
+    if not candidates:
+        raise IPCalcError(_no_fit(given, prefix, needed, net_addr, bc_addr))
+
+    chosen = candidates[0]  # the largest prefix: the smallest subnet that fits
+    # With a host count, bigger subnets always fit too, so they aren't worth listing.
+    alternatives = [] if needed is not None or prefix is not None else candidates[1:]
+    info = _info(ip_addr or anchor, chosen)
+
+    note = ""
+    if ip_addr is not None and chosen < 31 and ip_addr in (info.network, info.broadcast):
+        kind = "network" if ip_addr == info.network else "broadcast"
+        note = f"{ip_addr} is the {kind} address of this subnet, so it can't be given to a host."
+    return Solution(info=info, given=[FIELDS[name] for name in given], alternatives=alternatives, note=note)
+
+
+def _no_fit(given, prefix, needed, net_addr, bc_addr) -> str:
+    """Explain why no subnet matches what was typed."""
+    if net_addr is not None and bc_addr is not None and int(bc_addr) < int(net_addr):
+        return "The broadcast address must be higher than the network address."
+    if net_addr is not None and bc_addr is not None and prefix is None and needed is None:
+        return f"{net_addr} and {bc_addr} are not the start and end of one subnet."
+    if prefix is not None:
+        size = 2 ** (32 - prefix)
+        if net_addr is not None and int(net_addr) % size:
+            return f"{net_addr} is not the network address of a /{prefix}: it must be a multiple of {size:,} addresses."
+        if bc_addr is not None and (int(bc_addr) + 1) % size:
+            return f"{bc_addr} is not the broadcast address of a /{prefix}."
+    if needed is not None and (net_addr is not None or bc_addr is not None):
+        which = f"network {net_addr}" if net_addr is not None else f"broadcast {bc_addr}"
+        return f"No subnet with {which} has room for {needed:,} hosts."
+    names = " + ".join(FIELDS[name] for name in given)
+    return f"These values don't belong to one subnet ({names}). Check them for a typo."
 
 
 MAX_LISTED_SUBNETS = 1024
@@ -477,6 +602,7 @@ __all__ = [
     "IPCalcError",
     "SubnetInfo",
     "SameNetwork",
+    "Solution",
     "SubnetPlan",
     "VlsmPlan",
     "VlsmSubnet",
@@ -486,6 +612,7 @@ __all__ = [
     "parse_host",
     "subnet_info",
     "subnet_from_range",
+    "solve",
     "same_network",
     "split_network",
     "parse_requirements",

@@ -5,6 +5,7 @@ calculator and writes the results back into the page.
 """
 
 from html import escape
+from ipaddress import IPv4Address
 
 from js import document
 from pyodide.ffi import create_proxy
@@ -17,10 +18,10 @@ from ipcalc.core import (
     parse_address,
     parse_prefix,
     same_network,
+    solve,
     split_network,
     vlsm,
     subnet_from_range,
-    subnet_info,
     to_binary,
     worksheet,
 )
@@ -42,12 +43,18 @@ def error_box(error):
 
 
 def result_rows(pairs):
-    cells = "".join(
-        f'<div class="row"><dt>{escape(label)}</dt><dd><span>{escape(str(text))}</span>'
-        f'<button class="copy" type="button" data-v="{escape(str(text))}" aria-label="Copy {escape(label)}">copy</button></dd></div>'
-        for label, text in pairs
-    )
-    return f'<dl class="results">{cells}</dl>'
+    """Label/value cells with a copy button. IPv4 addresses also show their binary form."""
+    cells = []
+    for label, text in pairs:
+        shown = f'<span>{escape(str(text))}</span>'
+        if isinstance(text, IPv4Address):
+            shown = f'<span class="val"><span>{text}</span><span class="bin">{to_binary(text)}</span></span>'
+        cells.append(
+            f'<div class="row"><dt>{escape(label)}</dt><dd>{shown}'
+            f'<button class="copy" type="button" data-v="{escape(str(text))}" aria-label="Copy {escape(label)}">copy</button></dd></div>'
+        )
+    css = "results with-bin" if any(isinstance(text, IPv4Address) for _, text in pairs) else "results"
+    return f'<dl class="{css}">{"".join(cells)}</dl>'
 
 
 def bit_row(address, prefix):
@@ -141,13 +148,33 @@ def working(info: SubnetInfo):
 <div class="steps">{escape(steps)}</div></details>"""
 
 
+CALC_BOXES = {"ip": "c-ip", "network": "c-net", "broadcast": "c-bc", "hosts": "c-hosts", "mask": "c-mask"}
+
+
 def run_calc(*_):
     try:
-        address, mask = value("c-ip"), value("c-mask")
-        info = subnet_info(address) if "/" in address else subnet_info(address, mask)
-        el("c-out").innerHTML = info_rows(info) + working(info)
+        result = solve(**{name: value(box) for name, box in CALC_BOXES.items()})
     except IPCalcError as error:
         el("c-out").innerHTML = error_box(error)
+        return
+    info = result.info
+    html = f'<div class="solved">Calculated from: {escape(" + ".join(result.given))}</div>'
+    if result.alternatives:
+        others = ", ".join(f"/{p}" for p in result.alternatives)
+        html += (
+            f'<div class="note">More than one subnet fits these values. Showing the smallest (/{info.prefix}); '
+            f"{escape(others)} also fit{'s' if len(result.alternatives) == 1 else ''}. Add the mask or the number of hosts to choose.</div>"
+        )
+    if result.note:
+        html += f'<div class="note">{escape(result.note)}</div>'
+    el("c-out").innerHTML = html + info_rows(info) + working(info)
+
+
+def clear_calc(*_):
+    for box in CALC_BOXES.values():
+        el(box).value = ""
+    run_calc()
+    update_badges()
 
 
 def run_range(*_):
@@ -384,6 +411,9 @@ def listen(element_id, handler):
 def start():
     for element_id, handler in [
         ("c-ip", run_calc),
+        ("c-net", run_calc),
+        ("c-bc", run_calc),
+        ("c-hosts", run_calc),
         ("c-mask", run_calc),
         ("r-net", run_range),
         ("r-bc", run_range),
@@ -404,6 +434,9 @@ def start():
         ("x-new", run_split6),
     ]:
         listen(element_id, handler)
+    clear = create_proxy(clear_calc)
+    _handlers.append(clear)
+    el("c-clear").addEventListener("click", clear)
     badges = create_proxy(update_badges)
     _handlers.append(badges)
     document.addEventListener("input", badges)
