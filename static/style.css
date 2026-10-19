@@ -86,3 +86,11 @@ select{font-family:var(--sans);font-size:14px}
 .panel>.field{flex:none}
 .sub-h{font-size:15px;font-weight:600;margin:6px 0 0}
 [data-pane="ipv6"] .results{grid-template-columns:repeat(auto-fill,minmax(400px,1fr))}
+.row dd .bin{display:block;font:400 12px var(--mono);color:var(--muted);margin-top:2px}
+.row dd .val{display:flex;flex-direction:column;min-width:0}
+.results.with-bin{grid-template-columns:repeat(auto-fill,minmax(290px,1fr))}
+.solved{font-size:13px;color:var(--muted)}
+.note{color:var(--host);background:var(--host-soft);padding:8px 10px;border-radius:6px;font-size:14px}
+.link{font:inherit;color:var(--net);background:none;border:0;padding:0;cursor:pointer;text-decoration:underline}
+[data-pane="calc"] .field{flex:1 1 170px}
+[data-pane="calc"] .field.narrow{flex:0 1 140px}

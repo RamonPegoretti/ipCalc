@@ -16,6 +16,7 @@ from ipcalc.core import (
     parse_address,
     parse_prefix,
     same_network,
+    solve,
     split_network,
     parse_requirements,
     vlsm,
@@ -403,3 +404,79 @@ def test_vlsm_errors(requests):
 )
 def test_parse_requirements(text, expected):
     assert parse_requirements(text) == expected
+
+
+# ---------- any two of IP host, network, broadcast, number of hosts, mask ----------
+
+SOLVE_CASES = [
+    # (given values, network, broadcast, prefix)
+    ({"ip": "192.168.10.97", "mask": "255.255.255.224"}, "192.168.10.96", "192.168.10.127", 27),
+    ({"ip": "192.168.1.45/27"}, "192.168.1.32", "192.168.1.63", 27),
+    ({"network": "192.168.100.240", "broadcast": "192.168.100.247"}, "192.168.100.240", "192.168.100.247", 29),
+    ({"network": "192.168.1.0", "hosts": "50"}, "192.168.1.0", "192.168.1.63", 26),
+    ({"network": "10.0.0.0", "mask": "/8"}, "10.0.0.0", "10.255.255.255", 8),
+    ({"broadcast": "192.168.1.63", "hosts": "20"}, "192.168.1.32", "192.168.1.63", 27),
+    ({"broadcast": "172.16.8.127", "mask": "255.255.255.128"}, "172.16.8.0", "172.16.8.127", 25),
+    ({"ip": "192.168.1.45", "hosts": "50"}, "192.168.1.0", "192.168.1.63", 26),
+    ({"ip": "192.168.1.45", "hosts": "62"}, "192.168.1.0", "192.168.1.63", 26),
+    ({"ip": "192.168.1.45", "hosts": "63"}, "192.168.1.0", "192.168.1.127", 25),
+    ({"ip": "11000000.10101000.00000001.00101101", "mask": "11111111.11111111.11111111.11100000"}, "192.168.1.32", "192.168.1.63", 27),
+    ({"ip": "192.168.1.45", "network": "192.168.1.32", "broadcast": "192.168.1.63"}, "192.168.1.32", "192.168.1.63", 27),
+    ({"ip": "192.168.1.45", "network": "192.168.1.32", "hosts": "30", "mask": "/27"}, "192.168.1.32", "192.168.1.63", 27),
+]
+
+
+@pytest.mark.parametrize("given, network, broadcast, prefix", SOLVE_CASES)
+def test_solve_from_any_two(given, network, broadcast, prefix):
+    info = solve(**given).info
+    assert (str(info.network), str(info.broadcast), info.prefix) == (network, broadcast, prefix)
+
+
+def test_solve_gives_every_result():
+    s = solve(network="192.168.1.0", hosts="50")
+    info = s.info
+    assert str(info.netmask) == "255.255.255.192"
+    assert str(info.gateway) == "192.168.1.1"
+    assert str(info.last_host) == "192.168.1.62"
+    assert info.usable_hosts == 62
+    assert s.given == ["Network", "Number of hosts"]
+    assert s.alternatives == []
+
+
+def test_solve_lists_other_possible_masks():
+    # 192.168.1.45 in network 192.168.1.32 could be a /28 (.32-.47) or a /27 (.32-.63).
+    s = solve(ip="192.168.1.45", network="192.168.1.32")
+    assert s.info.prefix == 28
+    assert s.alternatives == [27]
+    s = solve(ip="192.168.1.45", broadcast="192.168.1.63")
+    assert (s.info.prefix, s.alternatives) == (27, [26])
+
+
+def test_solve_warns_when_the_ip_is_not_a_host():
+    assert "network address" in solve(ip="192.168.1.32", mask="/27").note
+    assert "broadcast address" in solve(ip="192.168.1.63", mask="/27").note
+    assert solve(ip="192.168.1.33", mask="/27").note == ""
+
+
+@pytest.mark.parametrize(
+    "given, message",
+    [
+        ({}, "at least two"),
+        ({"ip": "192.168.1.45"}, "at least two"),
+        ({"hosts": "25", "mask": "/27"}, "room for 30 hosts"),
+        ({"hosts": "40", "mask": "/27"}, "don't fit"),
+        ({"network": "192.168.1.32", "mask": "/26"}, "multiple of 64"),
+        ({"broadcast": "192.168.1.62", "mask": "/27"}, "not the broadcast"),
+        ({"network": "192.168.1.32", "hosts": "50"}, "room for 50"),
+        ({"network": "192.168.1.0", "broadcast": "192.168.1.62"}, "not the start and end"),
+        ({"network": "192.168.1.64", "broadcast": "192.168.1.0"}, "higher than"),
+        ({"ip": "192.168.1.45", "network": "192.168.1.64"}, "don't belong"),
+        ({"ip": "192.168.1.45/27", "mask": "/26"}, "says /27"),
+        ({"ip": "192.168.1.300", "mask": "/24"}, "not an IP address"),
+        ({"ip": "192.168.1.1", "hosts": "zero"}, "whole number"),
+        ({"ip": "192.168.1.1", "hosts": "0"}, "at least 1"),
+    ],
+)
+def test_solve_errors(given, message):
+    with pytest.raises(IPCalcError, match=message):
+        solve(**given)
