@@ -6,7 +6,7 @@
 <title>ipCalc</title>
 <meta name="description" content="IPv4 and IPv6 subnet calculator. Type any IP or mask in decimal or binary.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Schibsted+Grotesk:wght@300;400;500;600;700;800&display=swap">
 <link rel="icon" href="static/logo.svg" type="image/svg+xml">
 <link rel="stylesheet" href="static/style.css">
 <script>
@@ -17,39 +17,49 @@
 <body>
 <div class="wrap">
   <header>
-    <h1><img class="logo" src="static/logo.svg" alt="" width="26" height="26">ip<span>Calc</span></h1>
-    <span class="sub">IPv4 and IPv6 subnet calculator. Type IPs in decimal (IPv4), hex (IPv6) or binary; IPv4 results are in decimal and binary.</span>
+    <h1 aria-label="ipCalc">ip<span class="s">/</span>calc</h1>
+    <nav role="tablist" aria-label="Tools">
+      <button role="tab" aria-selected="true" data-tab="calc">Subnet info</button>
+      <button role="tab" aria-selected="false" data-tab="range">Network → CIDR</button>
+      <button role="tab" aria-selected="false" data-tab="same">Same network?</button>
+      <button role="tab" aria-selected="false" data-tab="conv">Decimal ⇄ Binary</button>
+      <button role="tab" aria-selected="false" data-tab="split">Subnetting</button>
+      <button role="tab" aria-selected="false" data-tab="vlsm">VLSM</button>
+      <button role="tab" aria-selected="false" data-tab="ipv6">IPv6</button>
+      <button role="tab" aria-selected="false" data-tab="batch">Worksheet mode</button>
+    </nav>
     <span class="status" id="status">Starting Python…</span>
-    <button class="theme" id="theme" type="button" aria-label="Theme: automatic">Auto</button>
+    <button class="theme" id="theme" type="button" aria-label="Theme: automatic">Theme <b>Auto</b></button>
   </header>
 
-  <nav role="tablist" aria-label="Tools">
-    <button role="tab" aria-selected="true" data-tab="calc">Subnet info</button>
-    <button role="tab" aria-selected="false" data-tab="range">Network → CIDR</button>
-    <button role="tab" aria-selected="false" data-tab="same">Same network?</button>
-    <button role="tab" aria-selected="false" data-tab="conv">Decimal ⇄ Binary</button>
-    <button role="tab" aria-selected="false" data-tab="split">Subnetting</button>
-    <button role="tab" aria-selected="false" data-tab="vlsm">VLSM</button>
-    <button role="tab" aria-selected="false" data-tab="ipv6">IPv6</button>
-    <button role="tab" aria-selected="false" data-tab="batch">Worksheet mode</button>
-  </nav>
-
-  <!-- Subnet info: any two of five values -->
+  <!-- Subnet info: any two of five values. The IP and mask read like CIDR: ip / mask -->
   <section class="panel" data-pane="calc">
-    <div class="inputs">
+    <div class="line">
       <div class="field"><label for="c-ip">IP host <span class="badge" data-fmt></span></label>
-        <input id="c-ip" value="192.168.10.97" placeholder="e.g. 192.168.1.45" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
-      <div class="field"><label for="c-net">Network <span class="badge" data-fmt></span></label>
-        <input id="c-net" placeholder="e.g. 192.168.1.32" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
-      <div class="field"><label for="c-bc">Broadcast <span class="badge" data-fmt></span></label>
-        <input id="c-bc" placeholder="e.g. 192.168.1.63" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
-      <div class="field narrow"><label for="c-hosts">Number of hosts</label>
-        <input id="c-hosts" placeholder="e.g. 30" inputmode="numeric" autocomplete="off"></div>
+        <input id="c-ip" value="192.168.10.97" placeholder="192.168.1.45" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
+      <div class="cut" aria-hidden="true">/</div>
       <div class="field"><label for="c-mask">Subnet mask <span class="badge" data-fmt></span></label>
         <input id="c-mask" value="255.255.255.224" placeholder="/27 or 255.255.255.224" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
     </div>
-    <div class="hint">Fill in <b>any two</b> boxes and leave the rest empty, e.g. IP host + mask, network + number of hosts, or network + broadcast. Decimal or binary, like <code>11000000.10101000.00001010.01100001</code>. <button class="link" type="button" id="c-clear">Clear all</button></div>
-    <div id="c-out" aria-live="polite"></div>
+    <div class="more">
+      <span>Or any two of</span>
+      <div class="field"><label for="c-net">Network <span class="badge" data-fmt></span></label>
+        <input id="c-net" placeholder="192.168.1.32" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
+      <div class="field"><label for="c-bc">Broadcast <span class="badge" data-fmt></span></label>
+        <input id="c-bc" placeholder="192.168.1.63" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
+      <div class="field narrow"><label for="c-hosts">Hosts</label>
+        <input id="c-hosts" placeholder="30" inputmode="numeric" autocomplete="off"></div>
+      <button class="link" type="button" id="c-clear">Clear all</button>
+    </div>
+    <div class="hint">Fill in <b>any two</b> boxes, in decimal or binary like <code>11000000.10101000.00001010.01100001</code>. You can also type <code>192.168.1.45/27</code> in the IP box.</div>
+    <div class="ruler-wrap" id="c-ruler-wrap" hidden>
+      <div class="ruler" id="c-ruler" tabindex="0" role="slider" aria-label="Prefix length" aria-valuemin="0" aria-valuemax="32"></div>
+      <div class="ruler-legend" id="c-legend"></div>
+    </div>
+    <div class="out">
+      <div id="c-out" aria-live="polite"></div>
+      <aside class="sum" id="c-sum"></aside>
+    </div>
   </section>
 
   <!-- Network + broadcast -> CIDR -->
