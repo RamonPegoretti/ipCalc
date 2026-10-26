@@ -6,7 +6,7 @@ An IPv4 (and IPv6) subnet calculator for the networking course worksheets, built
 Type any address or mask in **decimal or binary**; IPv4 results are shown in both decimal and binary.
 
 What it solves:
-- **Subnet info:** fill in any two of IP host, network, broadcast, number of hosts and subnet mask → network, broadcast, first host (gateway), last host, subnet mask, wildcard, host count
+- **Subnet info:** fill in any two of IP host, network, broadcast, number of hosts and subnet mask → network, broadcast, first host (gateway), last host, subnet mask, wildcard, host count. Drag the slash on the 32-bit ruler to change the mask.
 - **Network → CIDR:** network + broadcast address → CIDR and subnet mask
 - **Same network?:** can two PCs talk directly?
 - **Decimal ⇄ binary:** single octets or whole addresses
@@ -18,7 +18,7 @@ What it solves:
 ## How it works
 - `ipcalc/core.py`: all the IPv4 maths, plain Python with the standard `ipaddress` module.
 - `ipcalc/ipv6.py`: the IPv6 maths.
-- `index.html` + `static/style.css`: the page.
+- `index.html` + `static/style.css`: the page ("Slash" design: flat colours, Schibsted Grotesk + IBM Plex Mono; network bits are blue, host bits apricot).
 - `static/app.py`: connects the page to `core.py` (reads the boxes, writes the results).
 - `static/main.js`: starts Python in the browser with [Pyodide](https://pyodide.org), plus tabs, copy buttons and the Auto / Light / Dark theme switch (remembered per browser). No maths in here.
 - Every push to `main` is published to GitHub Pages by `.github/workflows/pages.yml`.

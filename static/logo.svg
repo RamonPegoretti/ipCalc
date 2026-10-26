@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <!-- ipCalc logo: the CIDR slash on a blue tile, with an orange dot for the host part -->
-  <rect width="32" height="32" rx="7" fill="#1f6feb"/>
-  <path d="M19.5 6 L11 26" stroke="#fff" stroke-width="4" stroke-linecap="round" fill="none"/>
-  <circle cx="23.5" cy="23.5" r="3" fill="#f97316"/>
+  <!-- ipCalc logo: the CIDR slash cutting a network part (blue) from a host part (apricot) -->
+  <rect width="16" height="32" fill="#CADBFF"/>
+  <rect x="16" width="16" height="32" fill="#FFDCC2"/>
+  <path d="M19.5 4 L12.5 28" stroke="#15171C" stroke-width="4.5" fill="none"/>
 </svg>
