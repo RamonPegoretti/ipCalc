@@ -6,7 +6,7 @@
 <title>ipCalc</title>
 <meta name="description" content="IPv4 and IPv6 subnet calculator. Type any IP or mask in decimal or binary.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=DM+Mono:wght@400;500&display=swap">
 <link rel="icon" href="static/logo.svg" type="image/svg+xml">
 <link rel="stylesheet" href="static/style.css">
 <script>
@@ -15,170 +15,179 @@
 </script>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <h1><img class="logo" src="static/logo.svg" alt="" width="26" height="26">ip<span>Calc</span></h1>
-    <span class="sub">IPv4 and IPv6 subnet calculator. Type IPs in decimal (IPv4), hex (IPv6) or binary; IPv4 results are in decimal and binary.</span>
-    <span class="status" id="status">Starting Python…</span>
-    <button class="theme" id="theme" type="button" aria-label="Theme: automatic">Auto</button>
-  </header>
-
-  <nav role="tablist" aria-label="Tools">
-    <button role="tab" aria-selected="true" data-tab="calc">Subnet info</button>
-    <button role="tab" aria-selected="false" data-tab="range">Network → CIDR</button>
-    <button role="tab" aria-selected="false" data-tab="same">Same network?</button>
-    <button role="tab" aria-selected="false" data-tab="conv">Decimal ⇄ Binary</button>
-    <button role="tab" aria-selected="false" data-tab="split">Subnetting</button>
-    <button role="tab" aria-selected="false" data-tab="vlsm">VLSM</button>
-    <button role="tab" aria-selected="false" data-tab="ipv6">IPv6</button>
-    <button role="tab" aria-selected="false" data-tab="batch">Worksheet mode</button>
-  </nav>
-
-  <!-- Subnet info: any two of five values -->
-  <section class="panel" data-pane="calc">
-    <div class="inputs">
-      <div class="field"><label for="c-ip">IP host <span class="badge" data-fmt></span></label>
-        <input id="c-ip" value="192.168.10.97" placeholder="e.g. 192.168.1.45" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
-      <div class="field"><label for="c-net">Network <span class="badge" data-fmt></span></label>
-        <input id="c-net" placeholder="e.g. 192.168.1.32" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
-      <div class="field"><label for="c-bc">Broadcast <span class="badge" data-fmt></span></label>
-        <input id="c-bc" placeholder="e.g. 192.168.1.63" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
-      <div class="field narrow"><label for="c-hosts">Number of hosts</label>
-        <input id="c-hosts" placeholder="e.g. 30" inputmode="numeric" autocomplete="off"></div>
-      <div class="field"><label for="c-mask">Subnet mask <span class="badge" data-fmt></span></label>
-        <input id="c-mask" value="255.255.255.224" placeholder="/27 or 255.255.255.224" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
+<div class="shell">
+  <aside class="rail">
+    <div class="brand">
+      <h1><img class="logo" src="static/logo.svg" alt="" width="22" height="22">ipCalc</h1>
+      <button class="theme" id="theme" type="button" aria-label="Theme: automatic">Auto</button>
     </div>
-    <div class="hint">Fill in <b>any two</b> boxes and leave the rest empty, e.g. IP host + mask, network + number of hosts, or network + broadcast. Decimal or binary, like <code>11000000.10101000.00001010.01100001</code>. <button class="link" type="button" id="c-clear">Clear all</button></div>
-    <div id="c-out" aria-live="polite"></div>
-  </section>
+    <p class="sub">IPv4 and IPv6 subnet calculator. Type addresses in decimal, hex or binary.</p>
+    <nav role="tablist" aria-label="Tools">
+      <button role="tab" aria-selected="true" data-tab="calc" data-desc="Fill in any two values and get the whole subnet, in decimal and binary."><span class="n">01</span><span class="t">Subnet info</span></button>
+      <button role="tab" aria-selected="false" data-tab="range" data-desc="Give the first and last address of a block and get the CIDR that spans it."><span class="n">02</span><span class="t">Network → CIDR</span></button>
+      <button role="tab" aria-selected="false" data-tab="same" data-desc="Find out whether two hosts can talk directly or need a router between them."><span class="n">03</span><span class="t">Same network?</span></button>
+      <button role="tab" aria-selected="false" data-tab="conv" data-desc="Turn a number, an octet or a whole address into binary, and back."><span class="n">04</span><span class="t">Decimal ⇄ Binary</span></button>
+      <button role="tab" aria-selected="false" data-tab="split" data-desc="Cut one network into equal subnets, by how many you need or by hosts each."><span class="n">05</span><span class="t">Subnetting</span></button>
+      <button role="tab" aria-selected="false" data-tab="vlsm" data-desc="Fit subnets of different sizes into one network, biggest first, with no gaps."><span class="n">06</span><span class="t">VLSM</span></button>
+      <button role="tab" aria-selected="false" data-tab="ipv6" data-desc="Compress, expand and split an IPv6 network."><span class="n">07</span><span class="t">IPv6</span></button>
+      <button role="tab" aria-selected="false" data-tab="batch" data-desc="Paste a whole worksheet, one line per question, and get every answer in one table."><span class="n">08</span><span class="t">Worksheet mode</span></button>
+    </nav>
+    <footer>
+      <span>Runs in your browser with Python's <code>ipaddress</code> module.</span>
+      <a href="https://github.com/RamonPegoretti/ipCalc">Source on GitHub</a>
+      <span class="version" id="version"></span>
+    </footer>
+  </aside>
 
-  <!-- Network + broadcast -> CIDR -->
-  <section class="panel" data-pane="range" hidden>
-    <div class="inputs">
-      <div class="field"><label for="r-net">Network address <span class="badge" data-fmt></span></label>
-        <input id="r-net" value="192.168.100.240" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
-      <div class="field"><label for="r-bc">Broadcast address <span class="badge" data-fmt></span></label>
-        <input id="r-bc" value="192.168.100.247" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
+  <main>
+    <div class="pane-head">
+      <span class="num" id="pane-num">01</span>
+      <h2 id="pane-title">Subnet info</h2>
+      <p class="lede" id="pane-desc">Fill in any two values and get the whole subnet, in decimal and binary.</p>
+      <span class="status" id="status">Starting Python…</span>
     </div>
-    <div class="hint">Either box can be decimal or binary.</div>
-    <div id="r-out" aria-live="polite"></div>
-  </section>
 
-  <!-- Same network? -->
-  <section class="panel" data-pane="same" hidden>
-    <div class="inputs">
-      <div class="field"><label for="s-a">This PC <span class="badge" data-fmt></span></label>
-        <input id="s-a" value="192.168.10.97" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
-      <div class="field narrow"><label for="s-m">Mask or CIDR <span class="badge" data-fmt></span></label>
-        <input id="s-m" value="255.255.255.224" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
-      <div class="field"><label for="s-b">Other IP <span class="badge" data-fmt></span></label>
-        <input id="s-b" value="192.168.10.110" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
-    </div>
-    <div id="s-out" aria-live="polite"></div>
-  </section>
+    <!-- Subnet info: any two of five values -->
+    <section class="panel" data-pane="calc">
+      <div class="inputs">
+        <div class="field"><label for="c-ip">IP host <span class="badge" data-fmt></span></label>
+          <input id="c-ip" value="192.168.10.97" placeholder="e.g. 192.168.1.45" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
+        <div class="field"><label for="c-net">Network <span class="badge" data-fmt></span></label>
+          <input id="c-net" placeholder="e.g. 192.168.1.32" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
+        <div class="field"><label for="c-bc">Broadcast <span class="badge" data-fmt></span></label>
+          <input id="c-bc" placeholder="e.g. 192.168.1.63" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
+        <div class="field narrow"><label for="c-hosts">Number of hosts</label>
+          <input id="c-hosts" placeholder="e.g. 30" inputmode="numeric" autocomplete="off"></div>
+        <div class="field"><label for="c-mask">Subnet mask <span class="badge" data-fmt></span></label>
+          <input id="c-mask" value="255.255.255.224" placeholder="/27 or 255.255.255.224" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
+      </div>
+      <div class="hint">Fill in <b>any two</b> boxes and leave the rest empty, e.g. IP host + mask, network + number of hosts, or network + broadcast. Decimal or binary, like <code>11000000.10101000.00001010.01100001</code>. <button class="link" type="button" id="c-clear">Clear all</button></div>
+      <div id="c-out" aria-live="polite"></div>
+    </section>
 
-  <!-- Converter -->
-  <section class="panel" data-pane="conv" hidden>
-    <div class="inputs">
-      <div class="field"><label for="v-in">Number, octet or full address <span class="badge" data-fmt></span></label>
-        <input id="v-in" value="178" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
-    </div>
-    <div class="hint">Accepts <code>178</code>, <code>10110010</code>, <code>192.168.1.1</code> or a dotted binary address. Binary means exactly 8 zeros/ones per octet.</div>
-    <div id="v-out" aria-live="polite"></div>
-  </section>
+    <!-- Network + broadcast -> CIDR -->
+    <section class="panel" data-pane="range" hidden>
+      <div class="inputs">
+        <div class="field"><label for="r-net">Network address <span class="badge" data-fmt></span></label>
+          <input id="r-net" value="192.168.100.240" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
+        <div class="field"><label for="r-bc">Broadcast address <span class="badge" data-fmt></span></label>
+          <input id="r-bc" value="192.168.100.247" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
+      </div>
+      <div class="hint">Either box can be decimal or binary.</div>
+      <div id="r-out" aria-live="polite"></div>
+    </section>
 
-  <!-- Subnetting -->
-  <section class="panel" data-pane="split" hidden>
-    <div class="inputs">
-      <div class="field"><label for="p-net">Network to split <span class="badge" data-fmt></span></label>
-        <input id="p-net" value="192.168.1.0" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
-      <div class="field narrow"><label for="p-mask">Mask or CIDR <span class="badge" data-fmt></span></label>
-        <input id="p-mask" value="/24" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
-      <div class="field mode"><label for="p-mode">Split into</label>
-        <select id="p-mode"><option value="count">Number of subnets</option><option value="hosts">Hosts per subnet</option></select></div>
-      <div class="field narrow"><label for="p-n">How many</label>
-        <input id="p-n" value="4" inputmode="numeric" autocomplete="off"></div>
-    </div>
-    <div class="hint">Subnet counts round up to a power of two: asking for 5 subnets gives 8. Hosts per subnet leaves room for the network and broadcast addresses.</div>
-    <div id="p-out" aria-live="polite"></div>
-    <div class="actions">
-      <button class="btn" type="button" data-table="p-table">Copy table</button>
-      <button class="btn ghost" type="button" data-table="p-table" data-format="csv">Copy as CSV</button>
-      <span class="hint copy-msg"></span>
-    </div>
-    <div class="tablewrap" id="p-table"></div>
-  </section>
+    <!-- Same network? -->
+    <section class="panel" data-pane="same" hidden>
+      <div class="inputs">
+        <div class="field"><label for="s-a">This PC <span class="badge" data-fmt></span></label>
+          <input id="s-a" value="192.168.10.97" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
+        <div class="field"><label for="s-m">Mask or CIDR <span class="badge" data-fmt></span></label>
+          <input id="s-m" value="255.255.255.224" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
+        <div class="field"><label for="s-b">Other IP <span class="badge" data-fmt></span></label>
+          <input id="s-b" value="192.168.10.110" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
+      </div>
+      <div id="s-out" aria-live="polite"></div>
+    </section>
 
-  <!-- VLSM -->
-  <section class="panel" data-pane="vlsm" hidden>
-    <div class="inputs">
-      <div class="field"><label for="l-net">Network <span class="badge" data-fmt></span></label>
-        <input id="l-net" value="192.168.1.0" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
-      <div class="field narrow"><label for="l-mask">Mask or CIDR <span class="badge" data-fmt></span></label>
-        <input id="l-mask" value="/24" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
-    </div>
-    <div class="field"><label for="l-req">Hosts needed: one subnet per line, with an optional name</label>
+    <!-- Converter -->
+    <section class="panel" data-pane="conv" hidden>
+      <div class="inputs">
+        <div class="field"><label for="v-in">Number, octet or full address <span class="badge" data-fmt></span></label>
+          <input id="v-in" value="178" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
+      </div>
+      <div class="hint">Accepts <code>178</code>, <code>10110010</code>, <code>192.168.1.1</code> or a dotted binary address. Binary means exactly 8 zeros/ones per octet.</div>
+      <div id="v-out" aria-live="polite"></div>
+    </section>
+
+    <!-- Subnetting -->
+    <section class="panel" data-pane="split" hidden>
+      <div class="inputs">
+        <div class="field"><label for="p-net">Network to split <span class="badge" data-fmt></span></label>
+          <input id="p-net" value="192.168.1.0" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
+        <div class="field narrow"><label for="p-mask">Mask or CIDR <span class="badge" data-fmt></span></label>
+          <input id="p-mask" value="/24" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
+        <div class="field mode"><label for="p-mode">Split into</label>
+          <select id="p-mode"><option value="count">Number of subnets</option><option value="hosts">Hosts per subnet</option></select></div>
+        <div class="field narrow"><label for="p-n">How many</label>
+          <input id="p-n" value="4" inputmode="numeric" autocomplete="off"></div>
+      </div>
+      <div class="hint">Subnet counts round up to a power of two: asking for 5 subnets gives 8. Hosts per subnet leaves room for the network and broadcast addresses.</div>
+      <div id="p-out" aria-live="polite"></div>
+      <div class="actions">
+        <button class="btn" type="button" data-table="p-table">Copy table</button>
+        <button class="btn ghost" type="button" data-table="p-table" data-format="csv">Copy as CSV</button>
+        <span class="hint copy-msg"></span>
+      </div>
+      <div class="tablewrap" id="p-table"></div>
+    </section>
+
+    <!-- VLSM -->
+    <section class="panel" data-pane="vlsm" hidden>
+      <div class="inputs">
+        <div class="field"><label for="l-net">Network <span class="badge" data-fmt></span></label>
+          <input id="l-net" value="192.168.1.0" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
+        <div class="field narrow"><label for="l-mask">Mask or CIDR <span class="badge" data-fmt></span></label>
+          <input id="l-mask" value="/24" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
+      </div>
+      <div class="field"><label for="l-req">Hosts needed: one subnet per line, with an optional name</label>
 <textarea id="l-req" spellcheck="false">Sales 25
 IT 100
 HR 10
 Router link 2
 Lab 50</textarea></div>
-    <div class="hint">Also accepts <code>50, 20, 10</code>. The biggest subnets are placed first so every block lines up with no gaps.</div>
-    <div id="l-out" aria-live="polite"></div>
-    <div class="actions">
-      <button class="btn" type="button" data-table="l-table">Copy table</button>
-      <button class="btn ghost" type="button" data-table="l-table" data-format="csv">Copy as CSV</button>
-      <span class="hint copy-msg"></span>
-    </div>
-    <div class="tablewrap" id="l-table"></div>
-  </section>
+      <div class="hint">Also accepts <code>50, 20, 10</code>. The biggest subnets are placed first so every block lines up with no gaps.</div>
+      <div id="l-out" aria-live="polite"></div>
+      <div class="actions">
+        <button class="btn" type="button" data-table="l-table">Copy table</button>
+        <button class="btn ghost" type="button" data-table="l-table" data-format="csv">Copy as CSV</button>
+        <span class="hint copy-msg"></span>
+      </div>
+      <div class="tablewrap" id="l-table"></div>
+    </section>
 
-  <!-- IPv6 -->
-  <section class="panel" data-pane="ipv6" hidden>
-    <div class="inputs">
-      <div class="field"><label for="x-ip">IPv6 address <span class="badge" data-fmt6></span></label>
-        <input id="x-ip" value="2001:db8:acad:1::25" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
-      <div class="field narrow"><label for="x-len">Prefix</label>
-        <input id="x-len" value="/64" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
-    </div>
-    <div class="hint">Accepts short or full form (<code>2001:db8::1</code>, <code>2001:0db8:0000:…</code>), <code>address/64</code> in one box, or binary: eight groups of 16 bits. Results are in standard hex.</div>
-    <div id="x-out" aria-live="polite"></div>
-    <h2 class="sub-h">Split into smaller subnets</h2>
-    <div class="inputs">
-      <div class="field narrow"><label for="x-new">New prefix</label>
-        <input id="x-new" value="/66" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
-    </div>
-    <div id="x-split" aria-live="polite"></div>
-    <div class="actions">
-      <button class="btn" type="button" data-table="x-table">Copy table</button>
-      <button class="btn ghost" type="button" data-table="x-table" data-format="csv">Copy as CSV</button>
-      <span class="hint copy-msg"></span>
-    </div>
-    <div class="tablewrap" id="x-table"></div>
-  </section>
+    <!-- IPv6 -->
+    <section class="panel" data-pane="ipv6" hidden>
+      <div class="inputs">
+        <div class="field"><label for="x-ip">IPv6 address <span class="badge" data-fmt6></span></label>
+          <input id="x-ip" value="2001:db8:acad:1::25" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
+        <div class="field narrow"><label for="x-len">Prefix</label>
+          <input id="x-len" value="/64" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
+      </div>
+      <div class="hint">Accepts short or full form (<code>2001:db8::1</code>, <code>2001:0db8:0000:…</code>), <code>address/64</code> in one box, or binary: eight groups of 16 bits. Results are in standard hex.</div>
+      <div id="x-out" aria-live="polite"></div>
+      <h3 class="sub-h">Split into smaller subnets</h3>
+      <div class="inputs">
+        <div class="field narrow"><label for="x-new">New prefix</label>
+          <input id="x-new" value="/66" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
+      </div>
+      <div id="x-split" aria-live="polite"></div>
+      <div class="actions">
+        <button class="btn" type="button" data-table="x-table">Copy table</button>
+        <button class="btn ghost" type="button" data-table="x-table" data-format="csv">Copy as CSV</button>
+        <span class="hint copy-msg"></span>
+      </div>
+      <div class="tablewrap" id="x-table"></div>
+    </section>
 
-  <!-- Worksheet mode -->
-  <section class="panel" data-pane="batch" hidden>
-    <div class="field"><label for="b-in">One per line: IP/CIDR, IP mask, or network broadcast. Decimal or binary.</label>
+    <!-- Worksheet mode -->
+    <section class="panel" data-pane="batch" hidden>
+      <div class="field"><label for="b-in">One per line: IP/CIDR, IP mask, or network broadcast. Decimal or binary.</label>
 <textarea id="b-in" spellcheck="false">192.168.1.45/27
 192.168.1.94/27
 192.168.10.150/26
 192.168.50.78 255.255.255.240
 192.168.1.0 192.168.1.31
 00001010.00010100.00011110.01001101/27</textarea></div>
-    <div class="actions">
-      <button class="btn" type="button" data-table="b-out">Copy table</button>
-      <button class="btn ghost" type="button" data-table="b-out" data-format="csv">Copy as CSV</button>
-      <span class="hint copy-msg"></span>
-    </div>
-    <div class="tablewrap" id="b-out"></div>
-  </section>
+      <div class="actions">
+        <button class="btn" type="button" data-table="b-out">Copy table</button>
+        <button class="btn ghost" type="button" data-table="b-out" data-format="csv">Copy as CSV</button>
+        <span class="hint copy-msg"></span>
+      </div>
+      <div class="tablewrap" id="b-out"></div>
+    </section>
 
-  <footer>
-    <span>Calculations run in your browser with Python's <code>ipaddress</code> module.
-      <a href="https://github.com/RamonPegoretti/ipCalc">Source on GitHub</a></span>
-    <span class="version" id="version"></span>
-  </footer>
+  </main>
 </div>
 
 <script src="https://cdn.jsdelivr.net/pyodide/v0.27.7/full/pyodide.js"></script>

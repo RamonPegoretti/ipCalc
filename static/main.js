@@ -11,7 +11,16 @@ const PYTHON_FILES = {
 // ---------- tabs ----------
 const tabs = document.querySelectorAll("nav button");
 function showTab(name) {
-  tabs.forEach((t) => t.setAttribute("aria-selected", t.dataset.tab === name));
+  tabs.forEach((t) => {
+    const on = t.dataset.tab === name;
+    t.setAttribute("aria-selected", on);
+    if (!on) return;
+    // The big heading above the panel repeats the chosen tool's number, name and description.
+    document.getElementById("pane-num").textContent = t.querySelector(".n").textContent;
+    document.getElementById("pane-title").textContent = t.querySelector(".t").textContent;
+    document.getElementById("pane-desc").textContent = t.dataset.desc;
+    t.scrollIntoView({ block: "nearest", inline: "nearest" }); // phones: the tab strip scrolls sideways
+  });
   document.querySelectorAll("[data-pane]").forEach((p) => (p.hidden = p.dataset.pane !== name));
 }
 tabs.forEach((t) =>
