@@ -57,6 +57,16 @@ def result_rows(pairs):
     return f'<dl class="{css}">{"".join(cells)}</dl>'
 
 
+def headline(network, cidr, usable_hosts):
+    """The two answers people look for first, set large above the full results."""
+    return (
+        '<div class="headline">'
+        f'<div><span class="k">Network</span><span class="big">{network}<span class="pre">{cidr}</span></span></div>'
+        f'<div><span class="k">Usable hosts</span><span class="big">{usable_hosts:,}</span></div>'
+        "</div>"
+    )
+
+
 def bit_row(address, prefix):
     bits = format(int(address), "032b")
     groups = []
@@ -158,7 +168,8 @@ def run_calc(*_):
         el("c-out").innerHTML = error_box(error)
         return
     info = result.info
-    html = f'<div class="solved">Calculated from: {escape(" + ".join(result.given))}</div>'
+    html = headline(info.network, info.cidr, info.usable_hosts)
+    html += f'<div class="solved">Calculated from: {escape(" + ".join(result.given))}</div>'
     if result.alternatives:
         others = ", ".join(f"/{p}" for p in result.alternatives)
         html += (
@@ -180,7 +191,7 @@ def clear_calc(*_):
 def run_range(*_):
     try:
         info = subnet_from_range(value("r-net"), value("r-bc"))
-        el("r-out").innerHTML = result_rows(
+        el("r-out").innerHTML = headline(info.network, info.cidr, info.usable_hosts) + result_rows(
             [
                 ("CIDR", info.cidr),
                 ("Subnet mask", info.netmask),
