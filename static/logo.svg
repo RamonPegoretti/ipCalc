@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- ipCalc logo: the CIDR slash on a pastel network tile, with a host square -->
+  <rect width="32" height="32" fill="#cfe0f3"/>
+  <path d="M19.5 5 L11 27" stroke="#1c1c1e" stroke-width="4" fill="none"/>
+  <rect x="21" y="21" width="6" height="6" fill="#f0a985"/>
+</svg>
+
